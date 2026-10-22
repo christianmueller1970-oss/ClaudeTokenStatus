@@ -15,6 +15,12 @@ targets:
     dependencies:
       - package: ClaudeTokenStatusPackage
         product: StatusCore
+      # Bridge nach Contents/MacOS, damit die Statuszeile auf das Bundle zeigen kann
+      - target: claude-status-bridge
+        embed: true
+        codeSign: true
+        copy:
+          destination: executables
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.funkwelt.ClaudeTokenStatus
@@ -28,6 +34,21 @@ targets:
         INFOPLIST_KEY_LSUIElement: YES
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
         # Lokale Ad-hoc-Signatur, kein Sandbox (persönliche App)
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+  claude-status-bridge:
+    type: tool
+    platform: macOS
+    sources: [Sources/claude-status-bridge]
+    dependencies:
+      - package: ClaudeTokenStatusPackage
+        product: StatusCore
+    settings:
+      base:
+        PRODUCT_NAME: claude-status-bridge
+        SWIFT_VERSION: "6.0"
+        SKIP_INSTALL: YES
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"
         DEVELOPMENT_TEAM: ""
