@@ -11,7 +11,8 @@ let package = Package(
         .target(name: "StatusCore"),
         .testTarget(
             name: "StatusCoreTests",
-            dependencies: ["StatusCore"]
+            dependencies: ["StatusCore"],
+            resources: [.copy("Fixtures")]
         ),
     ]
 )

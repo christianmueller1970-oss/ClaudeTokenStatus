@@ -1,0 +1,30 @@
+{
+  "model": {
+    "id": "claude-opus-5-5",
+    "display_name": "Opus 5.5"
+  },
+  "version": "2.1.308",
+  "cost": {
+    "total_cost_usd": 0,
+    "total_duration_ms": 412113,
+    "total_api_duration_ms": 325881,
+    "total_lines_added": 90,
+    "total_lines_removed": 1
+  },
+  "context_window": {
+    "total_input_tokens": 77926,
+    "total_output_tokens": 2789,
+    "context_window_size": 1000000,
+    "current_usage": {
+      "input_tokens": 2,
+      "output_tokens": 2789,
+      "cache_creation_input_tokens": 1899,
+      "cache_read_input_tokens": 76025
+    },
+    "used_percentage": null,
+    "remaining_percentage": 92
+  },
+  "exceeds_200k_tokens": false,
+  "session_id": "00000000-0000-0000-0000-000000000002",
+  "cwd": "/Users/test/Projekt"
+}
