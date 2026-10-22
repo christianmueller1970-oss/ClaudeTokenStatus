@@ -99,6 +99,38 @@ struct SnapshotMergeTests {
         #expect(merged.capturedAt == fresh.capturedAt)
     }
 
+    @Test("Übernommene Limits behalten ihr Alter, frische Limits sind sofort aktuell")
+    func limitAgeSurvivesMerge() throws {
+        let old = reset.addingTimeInterval(-3 * 3_600)
+        let now = reset.addingTimeInterval(-60)
+        let withLimits = #"{"rate_limits":{"five_hour":{"used_percentage":40,"resets_at":1792701000}}}"#
+
+        let previous = try ClaudeStatusSnapshot(statusLineJSON: Data(withLimits.utf8), capturedAt: old)
+        #expect(previous.limitsUpdatedAt == old)
+
+        // Frische Session ohne Limits: Snapshot neu, Limits bleiben 3 h alt und damit veraltet
+        let fresh = try ClaudeStatusSnapshot(statusLineJSON: Data(#"{"session_id":"neu"}"#.utf8), capturedAt: now)
+        #expect(fresh.limitsUpdatedAt == nil)
+        let carried = fresh.merged(withPrevious: previous)
+        #expect(carried.capturedAt == now)
+        #expect(carried.limitsUpdatedAt == old)
+        #expect(carried.isStale(at: now))
+
+        // Kommen wieder echte Limits, ist der Wert frisch
+        let updated = try ClaudeStatusSnapshot(statusLineJSON: Data(withLimits.utf8), capturedAt: now)
+            .merged(withPrevious: carried)
+        #expect(updated.limitsUpdatedAt == now)
+        #expect(!updated.isStale(at: now))
+    }
+
+    @Test("Älterer Vorgänger ohne limitsUpdatedAt zählt mit seinem capturedAt")
+    func legacyPreviousUsesCapturedAt() {
+        let old = reset.addingTimeInterval(-3 * 3_600)
+        let previous = ClaudeStatusSnapshot(fiveHour: RateLimitWindow(usedPercentage: 5, resetsAt: reset), capturedAt: old)
+        let merged = ClaudeStatusSnapshot(capturedAt: reset.addingTimeInterval(-60)).merged(withPrevious: previous)
+        #expect(merged.limitsUpdatedAt == old)
+    }
+
     @Test("Ohne Vorgänger bleibt der Snapshot unverändert")
     func mergeWithoutPrevious() {
         let snapshot = ClaudeStatusSnapshot(fiveHour: RateLimitWindow(usedPercentage: 5, resetsAt: reset), capturedAt: reset)

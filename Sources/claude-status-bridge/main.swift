@@ -9,16 +9,17 @@ let url = ProcessInfo.processInfo.environment["CLAUDE_TOKEN_STATUS_FILE"]
     .map { URL(fileURLWithPath: $0) } ?? StatusFile.defaultURL
 
 let input = FileHandle.standardInput.readDataToEndOfFile()
-// Fehlende oder kaputte status.json zählt als «kein Vorgänger»
-let previous = try? StatusFile.read(from: url)
-let result = StatusBridge.process(input: input, previous: previous, now: Date())
+var result: StatusBridge.Result?
 
-if let snapshot = result.snapshot {
-    do {
-        try StatusFile.write(snapshot, to: url)
-    } catch {
-        FileHandle.standardError.write(Data("claude-status-bridge: \(error.localizedDescription)\n".utf8))
+do {
+    try StatusFile.update(at: url) { previous in
+        let processed = StatusBridge.process(input: input, previous: previous, now: Date())
+        result = processed
+        return processed.snapshot
     }
+} catch {
+    FileHandle.standardError.write(Data("claude-status-bridge: \(error.localizedDescription)\n".utf8))
 }
 
-print(result.line)
+// Auch wenn status.json nicht erreichbar war, soll die Statuszeile etwas zeigen
+print((result ?? StatusBridge.process(input: input, previous: nil, now: Date())).line)

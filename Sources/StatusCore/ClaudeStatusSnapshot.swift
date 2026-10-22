@@ -11,6 +11,9 @@ public struct ClaudeStatusSnapshot: Codable, Equatable, Sendable {
     public var modelName: String?
     public var sessionID: String?
     public var capturedAt: Date
+    /// Wann zuletzt echte Limit-Werte kamen; kann älter sein als `capturedAt`,
+    /// wenn Limits aus einem früheren Snapshot übernommen wurden
+    public var limitsUpdatedAt: Date?
 
     public init(
         fiveHour: RateLimitWindow? = nil,
@@ -19,7 +22,8 @@ public struct ClaudeStatusSnapshot: Codable, Equatable, Sendable {
         sessionCostUSD: Double? = nil,
         modelName: String? = nil,
         sessionID: String? = nil,
-        capturedAt: Date
+        capturedAt: Date,
+        limitsUpdatedAt: Date? = nil
     ) {
         self.fiveHour = fiveHour
         self.sevenDay = sevenDay
@@ -28,20 +32,24 @@ public struct ClaudeStatusSnapshot: Codable, Equatable, Sendable {
         self.modelName = modelName
         self.sessionID = sessionID
         self.capturedAt = capturedAt
+        self.limitsUpdatedAt = limitsUpdatedAt
     }
 
     /// Baut einen Snapshot aus dem JSON, das Claude Code an das Statuszeilen-Script übergibt.
     /// Fehlende oder unerwartete Felder werden ignoriert; nur ungültiges JSON wirft.
     public init(statusLineJSON data: Data, capturedAt: Date = Date()) throws {
         let input = try JSONDecoder().decode(StatusLineInput.self, from: data)
+        let fiveHour = input.rateLimits?.fiveHour?.window
+        let sevenDay = input.rateLimits?.sevenDay?.window
         self.init(
-            fiveHour: input.rateLimits?.fiveHour?.window,
-            sevenDay: input.rateLimits?.sevenDay?.window,
+            fiveHour: fiveHour,
+            sevenDay: sevenDay,
             contextUsedPercentage: input.contextWindow?.usedPercentage,
             sessionCostUSD: input.cost?.totalCostUSD,
             modelName: input.model?.displayName ?? input.model?.id,
             sessionID: input.sessionID,
-            capturedAt: capturedAt
+            capturedAt: capturedAt,
+            limitsUpdatedAt: fiveHour != nil || sevenDay != nil ? capturedAt : nil
         )
     }
 
@@ -52,11 +60,16 @@ public struct ClaudeStatusSnapshot: Codable, Equatable, Sendable {
         var result = self
         result.fiveHour = RateLimitWindow.merge(fiveHour, previous.fiveHour)
         result.sevenDay = RateLimitWindow.merge(sevenDay, previous.sevenDay)
+        // Übernommene Limits behalten ihr Alter; ältere status.json ohne Feld zählt mit capturedAt
+        result.limitsUpdatedAt = limitsUpdatedAt
+            ?? previous.limitsUpdatedAt
+            ?? (previous.fiveHour != nil || previous.sevenDay != nil ? previous.capturedAt : nil)
         return result
     }
 
+    /// Alter der Limit-Werte (ohne Limits: Alter des Snapshots)
     public func age(at now: Date) -> TimeInterval {
-        now.timeIntervalSince(capturedAt)
+        now.timeIntervalSince(limitsUpdatedAt ?? capturedAt)
     }
 
     public func isStale(at now: Date, threshold: TimeInterval = 30 * 60) -> Bool {

@@ -43,37 +43,38 @@ public struct AlertState: Codable, Equatable, Sendable {
 
     public init() {}
 
-    /// Liefert neu überschrittene Schwellen und merkt sie sich.
+    /// Liefert neu überschrittene Schwellen, ohne sie als gemeldet zu markieren.
     /// Pro Fenster höchstens eine Mitteilung, nämlich für die höchste überschrittene Schwelle.
-    public mutating func alerts(
+    public func pendingAlerts(
         for snapshot: ClaudeStatusSnapshot,
         thresholds: [Double],
         at now: Date
     ) -> [ThresholdAlert] {
-        var alerts: [ThresholdAlert] = []
-
-        for kind in LimitKind.allCases {
+        LimitKind.allCases.compactMap { kind in
             // Abgelaufene Fenster melden nichts mehr
-            guard let window = snapshot.window(kind), now < window.resetsAt else { continue }
+            guard let window = snapshot.window(kind), now < window.resetsAt else { return nil }
+            // Bei neuem Fenster beginnt die Zählung wieder bei null
+            let entry = entries[kind.rawValue]
+            let notified = entry?.resetsAt == window.resetsAt ? entry?.threshold ?? 0 : 0
 
-            var entry = entries[kind.rawValue] ?? Entry(resetsAt: window.resetsAt, threshold: 0)
-            if entry.resetsAt != window.resetsAt {
-                // Neues Fenster: wieder bei null beginnen
-                entry = Entry(resetsAt: window.resetsAt, threshold: 0)
-            }
-
-            if let crossed = thresholds.filter({ $0 > 0 && window.usedPercentage >= $0 }).max(),
-               crossed > entry.threshold {
-                alerts.append(ThresholdAlert(
-                    kind: kind,
-                    threshold: crossed,
-                    usedPercentage: window.usedPercentage,
-                    resetsAt: window.resetsAt
-                ))
-                entry.threshold = crossed
-            }
-            entries[kind.rawValue] = entry
+            guard let crossed = thresholds.filter({ $0 > 0 && window.usedPercentage >= $0 }).max(),
+                  crossed > notified else { return nil }
+            return ThresholdAlert(
+                kind: kind,
+                threshold: crossed,
+                usedPercentage: window.usedPercentage,
+                resetsAt: window.resetsAt
+            )
         }
-        return alerts
+    }
+
+    /// Markiert eine Mitteilung als zugestellt; erst danach gilt die Schwelle als gemeldet.
+    public mutating func markNotified(_ alert: ThresholdAlert) {
+        if let entry = entries[alert.kind.rawValue] {
+            // Verspätete Zustellung darf weder ein neueres Fenster noch eine höhere Schwelle verdrängen
+            if entry.resetsAt > alert.resetsAt { return }
+            if entry.resetsAt == alert.resetsAt, entry.threshold >= alert.threshold { return }
+        }
+        entries[alert.kind.rawValue] = Entry(resetsAt: alert.resetsAt, threshold: alert.threshold)
     }
 }
