@@ -1,0 +1,33 @@
+# XcodeGen-Spezifikation; Projekt erzeugen mit `xcodegen generate`
+name: ClaudeTokenStatus
+options:
+  bundleIdPrefix: net.funkwelt
+  deploymentTarget:
+    macOS: "14.0"
+packages:
+  ClaudeTokenStatusPackage:
+    path: .
+targets:
+  ClaudeTokenStatus:
+    type: application
+    platform: macOS
+    sources: [App]
+    dependencies:
+      - package: ClaudeTokenStatusPackage
+        product: StatusCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.funkwelt.ClaudeTokenStatus
+        PRODUCT_NAME: ClaudeTokenStatus
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Claude Token Status
+        # Nur Menüleiste, kein Dock-Icon
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        # Lokale Ad-hoc-Signatur, kein Sandbox (persönliche App)
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
