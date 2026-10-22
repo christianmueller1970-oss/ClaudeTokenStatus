@@ -4,6 +4,7 @@ import SwiftUI
 /// Inhalt beim Klick auf das Menüleisten-Icon.
 struct StatusPopoverView: View {
     let model: StatusModel
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         TimelineView(.everyMinute) { context in
@@ -32,6 +33,12 @@ struct StatusPopoverView: View {
                 }
 
                 HStack {
+                    Button("Einstellungen …") {
+                        // Ohne Dock-Icon muss die App aktiviert werden, sonst öffnet das Fenster im Hintergrund
+                        NSApplication.shared.activate()
+                        openSettings()
+                    }
+                    .keyboardShortcut(",")
                     Spacer()
                     Button("Beenden") { NSApplication.shared.terminate(nil) }
                         .keyboardShortcut("q")

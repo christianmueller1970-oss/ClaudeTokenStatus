@@ -3,7 +3,12 @@ import SwiftUI
 
 @main
 struct ClaudeTokenStatusApp: App {
-    @State private var model = StatusModel()
+    @State private var model: StatusModel
+
+    init() {
+        AppSettings.registerDefaults()
+        _model = State(initialValue: StatusModel())
+    }
 
     var body: some Scene {
         MenuBarExtra {
@@ -12,5 +17,9 @@ struct ClaudeTokenStatusApp: App {
             MenuBarLabel(model: model)
         }
         .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView()
+        }
     }
 }

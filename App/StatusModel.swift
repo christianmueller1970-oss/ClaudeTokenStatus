@@ -14,6 +14,7 @@ final class StatusModel {
     let fileURL: URL
     @ObservationIgnored private var watcher: DirectoryWatcher?
     @ObservationIgnored private var clock: Timer?
+    @ObservationIgnored private let notifier = UsageNotifier()
 
     init(fileURL: URL = StatusFile.defaultURL) {
         self.fileURL = fileURL
@@ -41,8 +42,10 @@ final class StatusModel {
             return
         }
         do {
-            snapshot = try StatusFile.read(from: fileURL)
+            let snapshot = try StatusFile.read(from: fileURL)
+            self.snapshot = snapshot
             readError = nil
+            notifier.check(snapshot, at: now)
         } catch {
             // Letzten guten Stand behalten, Fehler nur anzeigen
             readError = error.localizedDescription
