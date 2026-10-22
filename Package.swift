@@ -6,9 +6,11 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "StatusCore", targets: ["StatusCore"]),
+        .executable(name: "claude-status-bridge", targets: ["claude-status-bridge"]),
     ],
     targets: [
         .target(name: "StatusCore"),
+        .executableTarget(name: "claude-status-bridge", dependencies: ["StatusCore"]),
         .testTarget(
             name: "StatusCoreTests",
             dependencies: ["StatusCore"],
